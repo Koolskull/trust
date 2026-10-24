@@ -76,7 +76,7 @@ fn run(launch: trust_lesson::Launch) -> Result<(), String> {
 
 fn live(app: &mut App) -> Result<(), String> {
     let controls = Arc::new(Controls::from_sound(&app.sound));
-    let speaker = match start_audio(Arc::clone(&controls)) {
+    let speaker = match start_audio(Arc::clone(&controls), app.age) {
         Ok(stream) => {
             app.speaker = Speaker::On;
             Some(stream)
@@ -198,7 +198,7 @@ impl Controls {
     }
 }
 
-fn start_audio(controls: Arc<Controls>) -> Result<cpal::Stream, String> {
+fn start_audio(controls: Arc<Controls>, age: u8) -> Result<cpal::Stream, String> {
     let host = cpal::default_host();
     let device = host
         .default_output_device()
@@ -232,7 +232,7 @@ fn start_audio(controls: Arc<Controls>) -> Result<cpal::Stream, String> {
                 while offset < frames {
                     let n = (frames - offset).min(out_l.len());
                     assert_no_alloc::assert_no_alloc(|| {
-                        render_block(&mut voice, &sound, &mut out_l[..n], &mut out_r[..n]);
+                        render_block(&mut voice, &sound, age, &mut out_l[..n], &mut out_r[..n]);
                     });
                     for i in 0..n {
                         let base = (offset + i) * channels;

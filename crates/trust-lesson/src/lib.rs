@@ -19,7 +19,9 @@
 mod app;
 mod parse;
 
-pub use app::{render, render_block, App, ClassId, Key, Screen, Sound, Speaker, Voice};
+pub use app::{
+    level_cap, render, render_block, App, ClassId, Key, LevelCap, Screen, Sound, Speaker, Voice,
+};
 pub use parse::{parse_cli, usage_text, Cli, Launch, UsageError};
 
 /// Ages this old and older choose a class. Younger ages get one lesson.

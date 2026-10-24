@@ -75,7 +75,9 @@ cargo install --path crates/trust-lesson
 KOS TRUST LESSON 3yo
 ```
 
-Ages 0 through 14 start that year's lesson and stay there. A 3 year old gets the big button: SPACE plays, 1 is soft, 2 is loud. Age 15 and older opens the full class list. You pick crush, hold, level, pads, MIDI, or the build. From the repo without installing:
+Ages 0 through 14 start that year's lesson, one step at a time. A 3 year old sees the big button first. SPACE plays it. The next step is soft and loud. Q leaves from any step. Age 15 and older opens the full class list. You pick crush, hold, level, pads, MIDI, or the build.
+
+The lesson holds its own level under a cap: quieter for ages 0–5, still under full scale at 15. Turn the computer volume down first. The cap is a tutorial limit, not a hearing-safety measurement. From the repo without installing:
 
 ```
 cargo run -p trust-lesson -- TRUST LESSON 3yo

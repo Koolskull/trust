@@ -29,7 +29,7 @@ A `midi` key anywhere in the graph is an error. Note and CC bindings live in `tr
 
 ## Lesson
 
-`KOS TRUST LESSON <age>` is the `trust-lesson` binary. The words are case-insensitive. `3yo`, `3y`, and `3` are the same age. Ages 0 through 14 open one guided screen for that year. Age 15 and older (`FULL_CLASS_AGE`) opens a subject list: crush, hold, level, pads, MIDI, and the build. The screen is a string the tests render without a TTY. The live binary reads keys and, when the output device opens, fills it from `Voice::render` under `assert_no_alloc`. Gain and mix are snapped in the lesson so the step is audible. The ceiling line in the level class is a digital limit, not a hearing-safety claim.
+`KOS TRUST LESSON <age>` is the `trust-lesson` binary. The words are case-insensitive. `3yo`, `3y`, and `3` are the same age. Ages 0 through 14 open one guided screen for that year. Age 15 and older (`FULL_CLASS_AGE`) opens a subject list: crush, hold, level, pads, MIDI, and the build. The screen is a string the tests render without a TTY. Guided years advance one step at a time. Keys from later steps do nothing until that step. Q quits from any step. The live binary reads keys and, when the output device opens, fills it from `Voice::render` under `assert_no_alloc`. `Voice::render` applies `level_cap` again, so a hot request cannot skip it. Ages 0–5 cap at 350 milli and −12000 dB milli. Ages 15 and older cap at 800 milli and −3000 dB milli. Gain and mix are snapped in the lesson so the step is audible. The ceiling line in the level class is a digital limit, not a hearing-safety claim.
 
 ## CLAP
 

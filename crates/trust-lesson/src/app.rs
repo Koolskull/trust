@@ -55,10 +55,52 @@ impl Sound {
             playing: false,
             bits: 8,
             rate_hz: 48_000,
-            gain_milli: 400,
+            gain_milli: 200,
             mix_milli: 1000,
-            ceiling_db_milli: -6_000,
+            ceiling_db_milli: -12_000,
             freq_hz: 220,
+        }
+    }
+
+    /// Pull gain and the ceiling down to the lesson cap for `age`.
+    pub fn capped(self, age: u8) -> Self {
+        let cap = level_cap(age);
+        let mut sound = self;
+        sound.gain_milli = sound.gain_milli.clamp(0, cap.gain_milli);
+        if sound.ceiling_db_milli > cap.ceiling_db_milli {
+            sound.ceiling_db_milli = cap.ceiling_db_milli;
+        }
+        sound
+    }
+}
+
+/// How hot this lesson is allowed to get. A tutorial limit, not a hearing-safety claim.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LevelCap {
+    pub gain_milli: i32,
+    pub ceiling_db_milli: i32,
+}
+
+pub fn level_cap(age: u8) -> LevelCap {
+    if age <= 5 {
+        LevelCap {
+            gain_milli: 350,
+            ceiling_db_milli: -12_000,
+        }
+    } else if age <= 10 {
+        LevelCap {
+            gain_milli: 500,
+            ceiling_db_milli: -9_000,
+        }
+    } else if age < FULL_CLASS_AGE {
+        LevelCap {
+            gain_milli: 700,
+            ceiling_db_milli: -6_000,
+        }
+    } else {
+        LevelCap {
+            gain_milli: 800,
+            ceiling_db_milli: -3_000,
         }
     }
 }
@@ -72,6 +114,9 @@ pub struct App {
     pub note: String,
     pub speaker: Speaker,
     pub quit: bool,
+    /// Current guided step. Full classes leave this at 0.
+    pub step: u8,
+    got: String,
 }
 
 impl App {
@@ -89,6 +134,8 @@ impl App {
             note: String::new(),
             speaker: Speaker::Untried,
             quit: false,
+            step: 0,
+            got: String::new(),
         };
         app.prepare_screen();
         app
@@ -109,18 +156,64 @@ impl App {
         match self.screen {
             Screen::Catalog => self.catalog_key(key),
             Screen::Class(class) => self.class_key(class, key),
-            Screen::Guided(year) => self.guided_key(year, key),
+            Screen::Guided(year) => self.guided_press(year, key),
         }
     }
 
     fn prepare_screen(&mut self) {
-        self.sound = Sound::quiet();
+        self.sound = Sound::quiet().capped(self.age);
         self.send_milli = 0;
+        self.step = 0;
+        self.got.clear();
         self.note = match self.screen {
             Screen::Catalog => "pick a subject".to_string(),
-            Screen::Guided(year) if year <= 5 => "waiting for the button".to_string(),
-            _ => "ready".to_string(),
+            Screen::Class(_) => "ready".to_string(),
+            Screen::Guided(year) => steps_for(year)[0].prompt.to_string(),
         };
+    }
+
+    fn guided_press(&mut self, year: u8, key: char) {
+        if !active_keys(year, self.step).contains(&key) {
+            self.note = self.prompt().to_string();
+            return;
+        }
+        self.guided_key(year, key);
+        self.commit();
+        self.mark_step(year, key);
+    }
+
+    fn prompt(&self) -> &'static str {
+        let Screen::Guided(year) = self.screen else {
+            return "";
+        };
+        let steps = steps_for(year);
+        let step = (self.step as usize).min(steps.len().saturating_sub(1));
+        steps[step].prompt
+    }
+
+    fn mark_step(&mut self, year: u8, key: char) {
+        let steps = steps_for(year);
+        let step = self.step as usize;
+        if step >= steps.len() {
+            return;
+        }
+        let need = steps[step].need;
+        if !need.contains(&key) {
+            return;
+        }
+        if !self.got.contains(key) {
+            self.got.push(key);
+        }
+        let done = need.iter().all(|needed| self.got.contains(*needed));
+        if done && step + 1 < steps.len() {
+            self.step += 1;
+            self.got.clear();
+            self.note = steps[self.step as usize].prompt.to_string();
+        }
+    }
+
+    fn commit(&mut self) {
+        self.sound = self.sound.capped(self.age);
     }
 
     fn catalog_key(&mut self, key: char) {
@@ -235,6 +328,7 @@ impl App {
                 }
             }
         }
+        self.commit();
     }
 
     fn guided_key(&mut self, year: u8, key: char) {
@@ -245,7 +339,7 @@ impl App {
             },
             2 | 3 => match key {
                 ' ' => self.toggle("the big button"),
-                '1' => self.hear_gain(250, "soft"),
+                '1' => self.hear_gain(120, "soft"),
                 '2' => self.hear_gain(700, "loud"),
                 _ => {}
             },
@@ -329,7 +423,7 @@ impl App {
                 }
                 '2' => {
                     self.sound.gain_milli = 1000;
-                    self.sound.ceiling_db_milli = -6_000;
+                    self.sound.ceiling_db_milli = -18_000;
                     self.sound.playing = true;
                     self.note =
                         "lid on. This is a level limit, not hearing protection.".to_string();
@@ -397,6 +491,279 @@ impl App {
     }
 }
 
+struct Step {
+    prompt: &'static str,
+    need: &'static [char],
+}
+
+fn steps_for(year: u8) -> &'static [Step] {
+    match year {
+        1 => &[
+            Step {
+                prompt: "Press SPACE.",
+                need: &[' '],
+            },
+            Step {
+                prompt: "Press SPACE again to stop.",
+                need: &[' '],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        2 | 3 => &[
+            Step {
+                prompt: "Press SPACE.",
+                need: &[' '],
+            },
+            Step {
+                prompt: "Press 1 for soft. Press 2 for loud.",
+                need: &['1', '2'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        4 => &[
+            Step {
+                prompt: "Press 1 for the low note.",
+                need: &['1'],
+            },
+            Step {
+                prompt: "Press 2 for the high note.",
+                need: &['2'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        5 => &[
+            Step {
+                prompt: "Press SPACE to start.",
+                need: &[' '],
+            },
+            Step {
+                prompt: "Press S to stop.",
+                need: &['s'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        6 => &[
+            Step {
+                prompt: "Press 1. More stairs, smoother.",
+                need: &['1'],
+            },
+            Step {
+                prompt: "Press 2.",
+                need: &['2'],
+            },
+            Step {
+                prompt: "Press 3. Fewer stairs, blockier.",
+                need: &['3'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        7 => &[
+            Step {
+                prompt: "Press 1 for 16 stairs.",
+                need: &['1'],
+            },
+            Step {
+                prompt: "Press 2 for 8 stairs.",
+                need: &['2'],
+            },
+            Step {
+                prompt: "Press 3 for 4 stairs.",
+                need: &['3'],
+            },
+            Step {
+                prompt: "Press 4 for 2 stairs.",
+                need: &['4'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        8 => &[
+            Step {
+                prompt: "Press 1 for fast.",
+                need: &['1'],
+            },
+            Step {
+                prompt: "Press 2 for slow.",
+                need: &['2'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        9 => &[
+            Step {
+                prompt: "Press 1 for a short hold.",
+                need: &['1'],
+            },
+            Step {
+                prompt: "Press 2 for a medium hold.",
+                need: &['2'],
+            },
+            Step {
+                prompt: "Press 3 for a long hold.",
+                need: &['3'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        10 => &[
+            Step {
+                prompt: "Press 1 for almost none of the crush.",
+                need: &['1'],
+            },
+            Step {
+                prompt: "Press 2 for half.",
+                need: &['2'],
+            },
+            Step {
+                prompt: "Press 3 for all of the crush.",
+                need: &['3'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        11 => &[
+            Step {
+                prompt: "Press 1 for a little crush.",
+                need: &['1'],
+            },
+            Step {
+                prompt: "Press 2 for a lot of crush.",
+                need: &['2'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        12 => &[
+            Step {
+                prompt: "Press 1. The lid is off.",
+                need: &['1'],
+            },
+            Step {
+                prompt: "Press 2. The lid is a level limit, not hearing protection.",
+                need: &['2'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        13 => &[
+            Step {
+                prompt: "Press 1 to open the gate.",
+                need: &['1'],
+            },
+            Step {
+                prompt: "Press 2 to close the gate.",
+                need: &['2'],
+            },
+            Step {
+                prompt: "Press 3 to send more.",
+                need: &['3'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+        _ => &[
+            Step {
+                prompt: "Press 1 to open the gate.",
+                need: &['1'],
+            },
+            Step {
+                prompt: "Press 2 to close the gate.",
+                need: &['2'],
+            },
+            Step {
+                prompt: "Press 3 to raise the send.",
+                need: &['3'],
+            },
+            Step {
+                prompt: "Press 4. Bits are an integer step.",
+                need: &['4'],
+            },
+            Step {
+                prompt: "Press Q when you are done.",
+                need: &[],
+            },
+        ],
+    }
+}
+
+fn active_keys(year: u8, step: u8) -> Vec<char> {
+    let mut keys = Vec::new();
+    for page in steps_for(year).iter().take(step as usize + 1) {
+        for key in page.need {
+            if !keys.contains(key) {
+                keys.push(*key);
+            }
+        }
+    }
+    keys
+}
+
+fn key_label(year: u8, key: char) -> &'static str {
+    match (year, key) {
+        (1, ' ') => "SPACE   the sound",
+        (2 | 3, ' ') => "SPACE   press the button",
+        (2 | 3, '1') => "1       soft",
+        (2 | 3, '2') => "2       loud",
+        (4, '1') => "1       low",
+        (4, '2') => "2       high",
+        (5, ' ') => "SPACE   go",
+        (5, 's') => "S       stop",
+        (6, '1') => "1       smoother",
+        (6, '2') => "2       middle",
+        (6, '3') => "3       blocky",
+        (7, '1') => "1       16 stairs",
+        (7, '2') => "2       8 stairs",
+        (7, '3') => "3       4 stairs",
+        (7, '4') => "4       2 stairs",
+        (8, '1') => "1       fast",
+        (8, '2') => "2       slow",
+        (9, '1') => "1       short hold",
+        (9, '2') => "2       medium hold",
+        (9, '3') => "3       long hold",
+        (10, '1') => "1       almost dry",
+        (10, '2') => "2       half",
+        (10, '3') => "3       all crush",
+        (11, '1') => "1       a little crush",
+        (11, '2') => "2       a lot of crush",
+        (12, '1') => "1       lid off",
+        (12, '2') => "2       lid on",
+        (13 | 14, '1') => "1       open the gate",
+        (13 | 14, '2') => "2       close the gate",
+        (13 | 14, '3') => "3       more send",
+        (14, '4') => "4       bits 6",
+        _ => "key",
+    }
+}
+
 fn send_rate(send_milli: i32) -> u32 {
     if send_milli <= 0 {
         48_000
@@ -422,7 +789,9 @@ impl Voice {
     }
 
     /// Fill `out_l` and `out_r`. No allocation. Call this on the audio thread.
-    pub fn render(&mut self, sound: &Sound, out_l: &mut [f32], out_r: &mut [f32]) {
+    /// `age` applies the lesson cap again, so a hot value cannot skip it.
+    pub fn render(&mut self, sound: &Sound, age: u8, out_l: &mut [f32], out_r: &mut [f32]) {
+        let sound = sound.capped(age);
         let n = out_l.len().min(out_r.len());
         if !sound.playing {
             out_l[..n].fill(0.0);
@@ -465,8 +834,14 @@ impl Voice {
     }
 }
 
-pub fn render_block(voice: &mut Voice, sound: &Sound, out_l: &mut [f32], out_r: &mut [f32]) {
-    voice.render(sound, out_l, out_r);
+pub fn render_block(
+    voice: &mut Voice,
+    sound: &Sound,
+    age: u8,
+    out_l: &mut [f32],
+    out_r: &mut [f32],
+) {
+    voice.render(sound, age, out_l, out_r);
 }
 
 pub fn render(app: &App) -> String {
@@ -478,17 +853,23 @@ pub fn render(app: &App) -> String {
 }
 
 fn render_guided(app: &App, year: u8) -> String {
-    let (title, body, keys) = guided_copy(year, app.age);
+    let (title, body, _) = guided_copy(year, app.age);
+    let steps = steps_for(year);
+    let step = (app.step as usize).min(steps.len().saturating_sub(1));
     let mut out = String::new();
     header(&mut out, app.age, title);
+    out.push_str("Turn the computer volume down first.\n");
     if year <= 5 {
-        out.push_str("A grown-up can read this aloud.\n\n");
+        out.push_str("A grown-up can read this aloud.\n");
     }
+    out.push('\n');
     out.push_str(body);
     out.push('\n');
+    out.push_str(&format!("step {} of {}\n", step + 1, steps.len()));
+    out.push_str(steps[step].prompt);
+    out.push_str("\n\n");
     if year <= 3 {
         let label = if app.sound.playing { "ON" } else { "HEAR IT" };
-        out.push('\n');
         out.push_str("  +------------------+\n");
         out.push_str(&box_line(""));
         out.push_str(&box_line("BIG BUTTON"));
@@ -496,10 +877,11 @@ fn render_guided(app: &App, year: u8) -> String {
         out.push_str(&box_line(label));
         out.push_str("  +------------------+\n\n");
     }
-    for line in keys {
-        out.push_str(line);
+    for key in active_keys(year, app.step) {
+        out.push_str(key_label(year, key));
         out.push('\n');
     }
+    out.push_str("Q       all done\n");
     footer(&mut out, app);
     out
 }
@@ -609,6 +991,8 @@ fn guided_copy(year: u8, age: u8) -> (&'static str, &'static str, &'static [&'st
 fn render_catalog(app: &App) -> String {
     let mut out = String::new();
     header(&mut out, app.age, "FULL CLASS");
+    out.push_str("Turn the computer volume down first.\n");
+    out.push_str("The lesson holds the level under a cap.\n\n");
     out.push_str("You choose the lesson from what you want to learn.\n\n");
     out.push_str("  1  crush     bit depth, an integer step 1 to 16\n");
     out.push_str("  2  hold      sample-rate reducer, in Hz\n");
@@ -656,6 +1040,7 @@ fn render_class(app: &App, class: ClassId) -> String {
         ),
     };
     header(&mut out, app.age, title);
+    out.push_str("The lesson holds the level under a cap.\n");
     out.push_str(body);
     out.push('\n');
     for line in keys {
@@ -705,6 +1090,9 @@ mod tests {
         let frame = render(&app);
         assert!(frame.contains("BIG BUTTON"));
         assert!(frame.contains("press the button"));
+        assert!(frame.contains("Press SPACE."));
+        assert!(frame.contains("Turn the computer volume down first."));
+        assert!(!frame.contains("1       soft"));
         let border = frame.lines().find(|line| line.contains('+')).unwrap();
         for line in frame
             .lines()
@@ -756,16 +1144,24 @@ mod tests {
     #[test]
     fn three_yo_soft_and_loud_change_the_sound() {
         let mut app = App::open(3);
+        let cap = level_cap(3);
         app.press(Key::Char('2'));
-        assert!(app.sound.playing);
-        assert_eq!(app.sound.gain_milli, 700);
-        assert_eq!(app.note, "loud");
-        assert!(render(&app).contains("ON"));
-        app.press(Key::Char('1'));
-        assert_eq!(app.sound.gain_milli, 250);
-        assert_eq!(app.note, "soft");
-        app.press(Key::Char(' '));
         assert!(!app.sound.playing);
+        assert_eq!(app.step, 0);
+        app.press(Key::Char(' '));
+        assert!(app.sound.playing);
+        assert_eq!(app.step, 1);
+        assert!(render(&app).contains("ON"));
+        assert!(render(&app).contains("1       soft"));
+        app.press(Key::Char('2'));
+        assert_eq!(app.sound.gain_milli, cap.gain_milli);
+        assert!(app.sound.gain_milli < 700);
+        assert_eq!(app.note, "loud");
+        assert_eq!(app.step, 1);
+        app.press(Key::Char('1'));
+        assert_eq!(app.sound.gain_milli, 120);
+        assert_eq!(app.step, 2);
+        assert!(render(&app).contains("Press Q when you are done."));
         app.press(Key::Char('q'));
         assert!(app.quit);
     }
@@ -800,9 +1196,9 @@ mod tests {
         let mut soft_r = [0.0; 128];
         let mut loud_l = [0.0; 128];
         let mut loud_r = [0.0; 128];
-        voice.render(&soft, &mut soft_l, &mut soft_r);
+        voice.render(&soft, 15, &mut soft_l, &mut soft_r);
         voice.phase = 0;
-        voice.render(&loud, &mut loud_l, &mut loud_r);
+        voice.render(&loud, 15, &mut loud_l, &mut loud_r);
         let soft_peak = peak(&soft_l);
         let loud_peak = peak(&loud_l);
         assert!(loud_peak > soft_peak, "{loud_peak} vs {soft_peak}");
@@ -814,9 +1210,35 @@ mod tests {
         let mut voice = Voice::new(48_000);
         let mut l = [1.0; 32];
         let mut r = [1.0; 32];
-        voice.render(&Sound::quiet(), &mut l, &mut r);
+        voice.render(&Sound::quiet(), 3, &mut l, &mut r);
         assert!(l.iter().all(|s| *s == 0.0));
         assert!(r.iter().all(|s| *s == 0.0));
+    }
+
+    #[test]
+    fn a_hot_request_stays_under_the_age_cap() {
+        let mut voice = Voice::new(48_000);
+        let mut hot = Sound::quiet();
+        hot.playing = true;
+        hot.bits = 16;
+        hot.gain_milli = 1000;
+        hot.ceiling_db_milli = 0;
+        let mut young_l = [0.0; 256];
+        let mut young_r = [0.0; 256];
+        let mut older_l = [0.0; 256];
+        let mut older_r = [0.0; 256];
+        voice.render(&hot, 3, &mut young_l, &mut young_r);
+        voice.phase = 0;
+        voice.render(&hot, 15, &mut older_l, &mut older_r);
+        let young = peak(&young_l);
+        let older = peak(&older_l);
+        assert!(young > 0.0);
+        assert!(
+            young < older,
+            "age 3 {young} should stay under age 15 {older}"
+        );
+        assert!(young < 0.3, "age 3 peak {young}");
+        assert!(older < 0.8, "age 15 peak {older}");
     }
 
     fn peak(buf: &[f32]) -> f32 {
