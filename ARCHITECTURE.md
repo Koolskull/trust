@@ -3,6 +3,22 @@
 In the name of the Father, and of the Son, and of the Holy Spirit.
 Lord Jesus Christ, Son of God, have mercy on us. Come, Holy Spirit.
 
+## Introduction
+
+[README.md](README.md) is the tour: how to open the lesson, how to play Thrash 0.6.0, and what each crate is. This file is the contract those programs share.
+
+The workspace version is `0.1.0`. `trust-tracker` is product `0.6.0` and does not inherit the workspace version. Thrash Tracker 0.5.3 is a separate JUCE application and still speaks `dm2.3`. This tree does not load a `.dm2` file.
+
+| Surface | Where it lives | What the audio thread sees |
+| --- | --- | --- |
+| KRUSH | `trust-dsp`, wrapped by `trust-clap` and `trust-host` | One stereo `process` over the caller's slices. |
+| Lesson | `trust-lesson`, binary `KOS` | `Voice::render` under `assert_no_alloc`, after `level_cap`. |
+| Thrash 0.6.0 | `trust-tracker` | Eight sines summed into one `Krush::process`. The grid arrives through atomics. |
+| Graph | `trust-graph` | A published bank. MIDI never travels inside the JSON. |
+| WASM proof | `trust-kos` | `trust_process` over 128-frame static buffers. |
+
+Native processing is requested in 128-frame blocks. A UI frame reads what the audio thread last published. The UI does not drive the clock.
+
 ## Clock
 
 The audio device is the master clock. A UI frame reads the last published block. It does not drive the instrument. Native processing is requested in 128-frame blocks (`trust_core::BLOCK_FRAMES`). At 48 kHz that is about 2.67 ms of audio, plus whatever buffer the device or the CLAP host already has. There is no separate millisecond latency budget in this build. The WASM proof measures nothing and promises nothing about latency.
@@ -29,11 +45,32 @@ A `midi` key anywhere in the graph is an error. Note and CC bindings live in `tr
 
 ## Lesson
 
-`KOS TRUST LESSON <age>` is the `trust-lesson` binary. The words are case-insensitive. `3yo`, `3y`, and `3` are the same age. The live command opens fullscreen. Big-letter pages come first. NEXT, or a tap on the page, moves forward. PLAY opens the keys. ESC, and the ESC key on the page, leave. A pen, a mouse, or a touch hits those same targets. Ages 0 through 4 get a short silly start, then each key keeps its own pitch, stair count, and hold. From age 5 (`READING_AGE`) the pages teach that year, and from age 6 the board adds that year's control. Age 15 and older (`FULL_CLASS_AGE`) picks crush, hold, level, pads, MIDI, or the build, reads that class, then plays it. `--dump` and `--keys` stay headless. They still walk the guided text lesson one step at a time, and Q quits that script. Unit tests do not open a window or an audio device. When a speaker is available, the live board fills it from `Voice::render` under `assert_no_alloc`. `Voice::render` applies `level_cap` again, so a hot request cannot skip it. Ages 0–5 cap at 350 milli and −12000 dB milli. Ages 15 and older cap at 800 milli and −3000 dB milli. The ceiling is a digital limit, not a hearing-safety claim.
+`KOS TRUST LESSON <age>` is the `trust-lesson` binary. The words are case-insensitive. `3yo`, `3y`, and `3` are the same age. Accepted ages are 0 through `MAX_AGE` (120). Age 0 has its own pages in `AGE0`. The live command opens fullscreen. Big-letter pages come first. NEXT, or a tap on the page, moves forward. PLAY opens the keys. ESC, and the ESC key on the page, leave. A pen, a mouse, or a touch hits those same targets. Q does not leave the window.
+
+Ages 0 through 4 (`READING_AGE` is 5) get a short silly start. `silly_sound` keeps a stable sound on each key: its own pitch, stair count, and hold, with quiet keys mixed in. From age 5 the pages teach that year in large type. From age 6, `knob_for` adds that year's control on the lesson board. Until age 15, `sound_for` stays on `BoardMode::Lesson`, so the crush, hold, level, pads, MIDI, and build classes remain the age-15 catalog. Age 15 and older (`FULL_CLASS_AGE`) picks one of those classes, reads it, then plays it. The page list for each year is in `crates/trust-lesson/src/book.rs`. The README table is the same map in plain language.
+
+`--dump` and `--keys` stay headless. They still walk the guided text lesson one step at a time, and Q quits that script. Unit tests do not open a window or an audio device. When a speaker is available, the live board fills it from `Voice::render` under `assert_no_alloc`. `Voice::render` applies `level_cap` again, so a hot request cannot skip it.
+
+| Age | Gain cap | Ceiling |
+| --- | --- | --- |
+| 0–5 | 350 milli | −12000 dB milli |
+| 6–10 | 500 milli | −9000 dB milli |
+| 11–14 | 700 milli | −6000 dB milli |
+| 15 and older | 800 milli | −3000 dB milli |
+
+The ceiling is a digital limit, not a hearing-safety claim.
 
 ## Thrash 0.6.0
 
-`trust-tracker` is product version 0.6.0. The workspace stays 0.1.0. The JUCE app stays 0.5.3 and still speaks `dm2.3`. This slice is one phrase: 16 rows, 8 channels, 120 bpm, 4 rows a beat. Empty cells are silent for that row. Eight sines sum, divide by eight, then one KRUSH runs on the mix. The audio thread copies the grid through atomics, renders under `assert_no_alloc`, and publishes the play row. The edit cursor does not follow that row. A pen selects a cell. Keys write pitches. Space starts at row 0. Unit tests do not open a window or a device.
+`trust-tracker` is product version 0.6.0. The package version is the literal `"0.6.0"`, not `version.workspace`. The workspace stays 0.1.0. The JUCE app stays 0.5.3 and still speaks `dm2.3`.
+
+This slice is one phrase: 16 rows (`ROWS`), 8 channels (`CHANNELS`), 120 bpm (`BPM`), 4 rows a beat (`ROWS_PER_BEAT`). One row is `sample_rate / 8` samples, so at 48 kHz the 16-row loop is two seconds. An empty cell is `EMPTY` (255) and is silent for that row. A sounding cell retriggers at the start of its row. The note does not hold into the next row.
+
+Eight sines sum, divide by eight, then one KRUSH runs on the mix. `Engine::new` sets bits 8, rate 8000 Hz, gain 450 milli, mix 1000 milli, and ceiling −6000 dB milli. `render` pulls at most `BLOCK_FRAMES` (128) at a time and does not allocate. Pitch is armed only when a row starts, through `libm::powf`. Each sample uses `libm::sinf`.
+
+The message thread owns the `Phrase`. The audio thread copies 128 note bytes from atomics onto the stack, renders under `assert_no_alloc`, and stores the play row. Space sets the restart flag before it sets playing, and the engine returns to row 0. The edit cursor does not follow that row. A pen, mouse, or touch calls `Phrase::select` and does not write a pitch. Note entry uses the tracker keyboard in `note_midi`: `Z` at octave 4 is MIDI 60. Octave clamps to 1..=7. The README has the full key table.
+
+`--dump` prints `THRASH 0.6.0` and the grid, then exits. Unit tests do not open a window or a device. Debug builds of the binary install `AllocDisabler`. The guard is around `render` and `reset`, not around the whole process.
 
 ## CLAP
 
