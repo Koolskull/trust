@@ -9,7 +9,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "KOS TRUST LESSON. An age-matched tutorial that runs in the terminal."
+description = "KOS TRUST LESSON. A fullscreen keyboard you can play with keys, a pen, or touch."
 publish = false
 
 [[bin]]
@@ -21,5 +21,6 @@ trust-core = { workspace = true }
 trust-dsp = { workspace = true }
 cpal = { workspace = true }
 assert_no_alloc = { workspace = true }
-crossterm = "0.28"
 libm = { workspace = true }
+winit = "0.30"
+softbuffer = "0.4"

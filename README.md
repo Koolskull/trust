@@ -28,7 +28,7 @@ The audio thread does not allocate, lock, or make a syscall. Debug builds instal
 | `trust-vmi` | Exported scene plus `trust.json`. |
 | `trust-kos` | `extern "C"` WASM proof and a plain HTML page. |
 | `xtask` | `cargo xtask bundle` and `cargo xtask hear`. |
-| `trust-lesson` | `KOS TRUST LESSON 3yo`. Age-matched tutorial. |
+| `trust-lesson` | `KOS TRUST LESSON 3yo`. Fullscreen keyboard for that age. |
 
 ## KRUSH
 
@@ -75,7 +75,7 @@ cargo install --path crates/trust-lesson
 KOS TRUST LESSON 3yo
 ```
 
-Ages 0 through 14 start that year's lesson, one step at a time. A 3 year old sees the big button first. SPACE plays it. The next step is soft and loud. Q leaves from any step. Age 15 and older opens the full class list. You pick crush, hold, level, pads, MIDI, or the build.
+The lesson opens a fullscreen black-and-white board. Every keyboard key plays a different sound. A pen or finger hits the same keys, including on a drawing-tablet monitor. ESC leaves. On a tablet, tap the ESC key drawn on the screen. Age 15 and older gets buttons for crush, hold, level, pads, MIDI, and build.
 
 The lesson holds its own level under a cap: quieter for ages 0–5, still under full scale at 15. Turn the computer volume down first. The cap is a tutorial limit, not a hearing-safety measurement. From the repo without installing:
 
@@ -83,7 +83,7 @@ The lesson holds its own level under a cap: quieter for ages 0–5, still under 
 cargo run -p trust-lesson -- TRUST LESSON 3yo
 ```
 
-`--dump` prints the screen and exits. `--keys space,2,q` plays a script. In a terminal the lesson stays open and, when a speaker is available, runs KRUSH on the audio thread. Unit tests do not open a device.
+`--dump` prints the text lesson and exits. `--keys space,2,q` runs that text script. The command above opens the fullscreen board and, when a speaker is available, runs KRUSH on the audio thread. Unit tests do not open a window or a device.
 
 ```
 rustup target add wasm32-unknown-unknown

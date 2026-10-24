@@ -29,13 +29,15 @@ pub fn usage_text() -> &'static str {
     "\
 KOS TRUST LESSON 3yo
 
-Ages 0 through 14 start that year's lesson.
-Age 15 and older opens the full class list. You pick the subject.
+A fullscreen board opens. Every key plays. Pen and touch hit the same keys.
+ESC leaves. On a tablet, tap the ESC key on the screen.
+
+Ages 0 through 14 get that year's sound.
+Age 15 and older can switch crush, hold, level, pads, MIDI, and build.
 
   KOS TRUST LESSON 3yo
   KOS TRUST LESSON 15yo
   KOS TRUST LESSON 7yo --dump
-  KOS TRUST LESSON 3yo --keys space,2,q
 "
 }
 

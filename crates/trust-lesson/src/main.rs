@@ -9,21 +9,23 @@
 //
 //   SPDX-License-Identifier: MIT OR Apache-2.0
 
-use std::io::{self, IsTerminal, Write};
+use std::num::NonZeroU32;
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, AtomicU8, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, SampleRate, StreamConfig};
-use crossterm::cursor::{Hide, MoveTo, Show};
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+use softbuffer::{Context, Surface};
+use trust_lesson::{
+    action_for, layout, paint, parse_cli, render, render_block, sound_for, spot_at, Action, App,
+    BoardMode, Cli, Sound, Voice, EXIT_ID,
 };
-use crossterm::{execute, queue};
-use trust_lesson::{parse_cli, render, render_block, App, Cli, Key, Sound, Speaker, Voice};
+use winit::application::ApplicationHandler;
+use winit::event::{ElementState, KeyEvent, MouseButton, TouchPhase, WindowEvent};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::keyboard::{KeyCode, NamedKey, PhysicalKey};
+use winit::window::{Fullscreen, Window, WindowId};
 
 #[cfg(debug_assertions)]
 #[global_allocator]
@@ -64,90 +66,344 @@ fn run(launch: trust_lesson::Launch) -> Result<(), String> {
         }
         return Ok(());
     }
-    if launch.dump || !io::stdin().is_terminal() {
+    if launch.dump {
         println!("{}", render(&app));
-        if !launch.dump && !io::stdin().is_terminal() {
-            eprintln!("Open a terminal to press the keys.");
-        }
+        println!("Fullscreen board. Every key plays. ESC leaves. Pen and touch use the same keys.");
         return Ok(());
     }
-    live(&mut app)
+    live(app.age)
 }
 
-fn live(app: &mut App) -> Result<(), String> {
-    let controls = Arc::new(Controls::from_sound(&app.sound));
-    let speaker = match start_audio(Arc::clone(&controls), app.age) {
-        Ok(stream) => {
-            app.speaker = Speaker::On;
-            Some(stream)
-        }
-        Err(_) => {
-            app.speaker = Speaker::Off;
-            None
-        }
+fn live(age: u8) -> Result<(), String> {
+    let controls = Arc::new(Controls::from_sound(&Sound::quiet()));
+    let audio = start_audio(Arc::clone(&controls), age).ok();
+    let event_loop = EventLoop::new().map_err(|err| err.to_string())?;
+    event_loop.set_control_flow(ControlFlow::Wait);
+    let mut stage = Stage {
+        age,
+        mode: BoardMode::Lesson,
+        window: None,
+        context: None,
+        surface: None,
+        keyboard: Vec::new(),
+        pointer: None,
+        cursor: (0, 0),
+        last: "play any key".to_string(),
+        controls,
+        _audio: audio,
     };
-    let _guard = TermGuard::enter()?;
-    loop {
-        draw(app)?;
-        if !event::poll(Duration::from_millis(200)).map_err(|e| e.to_string())? {
-            continue;
-        }
-        let event = event::read().map_err(|e| e.to_string())?;
-        let Event::Key(key) = event else {
-            continue;
+    event_loop
+        .run_app(&mut stage)
+        .map_err(|err| err.to_string())
+}
+
+struct Stage {
+    age: u8,
+    mode: BoardMode,
+    window: Option<Arc<Window>>,
+    context: Option<Context<Arc<Window>>>,
+    surface: Option<Surface<Arc<Window>, Arc<Window>>>,
+    keyboard: Vec<u16>,
+    pointer: Option<u16>,
+    cursor: (i32, i32),
+    last: String,
+    controls: Arc<Controls>,
+    _audio: Option<cpal::Stream>,
+}
+
+impl Stage {
+    fn sync_sound(&self) {
+        let id = self.pointer.or_else(|| self.keyboard.last().copied());
+        let sound = match id {
+            Some(id) => sound_for(self.age, id, self.mode),
+            None => {
+                let mut quiet = Sound::quiet();
+                quiet.playing = false;
+                quiet
+            }
         };
-        if key.kind != KeyEventKind::Press {
-            continue;
+        self.controls.store(&sound);
+    }
+
+    fn down(&mut self, id: u16) {
+        if id == EXIT_ID {
+            return;
         }
-        let parsed = match key.code {
-            KeyCode::Char(c) => Key::Char(c),
-            KeyCode::Esc => Key::Quit,
-            _ => continue,
+        if !self.keyboard.contains(&id) {
+            self.keyboard.push(id);
+        }
+        self.last = trust_lesson::label_for(id).to_string();
+        self.sync_sound();
+    }
+
+    fn up(&mut self, id: u16) {
+        self.keyboard.retain(|held| *held != id);
+        self.sync_sound();
+    }
+
+    fn redraw(&self) {
+        if let Some(window) = &self.window {
+            window.request_redraw();
+        }
+    }
+}
+
+impl ApplicationHandler for Stage {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.window.is_some() {
+            return;
+        }
+        let attrs = Window::default_attributes()
+            .with_title("KOS TRUST LESSON")
+            .with_fullscreen(Some(Fullscreen::Borderless(None)));
+        let window = match event_loop.create_window(attrs) {
+            Ok(window) => Arc::new(window),
+            Err(err) => {
+                eprintln!("could not open the lesson window: {err}");
+                event_loop.exit();
+                return;
+            }
         };
-        app.press(parsed);
-        controls.store(&app.sound);
-        if app.quit {
-            break;
+        let context = match Context::new(window.clone()) {
+            Ok(context) => context,
+            Err(err) => {
+                eprintln!("could not open the lesson window: {err}");
+                event_loop.exit();
+                return;
+            }
+        };
+        let surface = match Surface::new(&context, window.clone()) {
+            Ok(surface) => surface,
+            Err(err) => {
+                eprintln!("could not open the lesson window: {err}");
+                event_loop.exit();
+                return;
+            }
+        };
+        self.window = Some(window);
+        self.context = Some(context);
+        self.surface = Some(surface);
+    }
+
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+        match event {
+            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::KeyboardInput { event, .. } => self.on_key(event_loop, event),
+            WindowEvent::MouseInput { state, button, .. } => {
+                if button != MouseButton::Left && button != MouseButton::Middle {
+                    return;
+                }
+                if state == ElementState::Pressed {
+                    if self.point(self.cursor.0, self.cursor.1) {
+                        event_loop.exit();
+                    }
+                } else {
+                    self.pointer = None;
+                    self.sync_sound();
+                    self.redraw();
+                }
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                self.cursor = (position.x as i32, position.y as i32);
+                if self.pointer.is_some() && self.point(self.cursor.0, self.cursor.1) {
+                    event_loop.exit();
+                }
+            }
+            WindowEvent::Touch(touch) => {
+                let x = touch.location.x as i32;
+                let y = touch.location.y as i32;
+                self.cursor = (x, y);
+                match touch.phase {
+                    TouchPhase::Started | TouchPhase::Moved => {
+                        if self.point(x, y) {
+                            event_loop.exit();
+                        }
+                    }
+                    TouchPhase::Ended | TouchPhase::Cancelled => {
+                        self.pointer = None;
+                        self.sync_sound();
+                        self.redraw();
+                    }
+                }
+            }
+            WindowEvent::RedrawRequested => self.paint(),
+            _ => {}
         }
     }
-    drop(speaker);
-    Ok(())
 }
 
-fn draw(app: &App) -> Result<(), String> {
-    let mut stdout = io::stdout();
-    queue!(stdout, MoveTo(0, 0)).map_err(|e| e.to_string())?;
-    let frame = render(app);
-    for line in frame.lines() {
-        queue!(
-            stdout,
-            crossterm::style::Print(line),
-            crossterm::style::Print("\r\n")
-        )
-        .map_err(|e| e.to_string())?;
+impl Stage {
+    fn on_key(&mut self, event_loop: &ActiveEventLoop, event: KeyEvent) {
+        let token = token_from_key(&event);
+        match action_for(&token) {
+            Action::Exit if event.state == ElementState::Pressed => event_loop.exit(),
+            Action::Exit => {}
+            Action::Mode(mode) if event.state == ElementState::Pressed => {
+                self.mode = mode;
+                self.last = mode.name().to_string();
+                self.redraw();
+            }
+            Action::Mode(_) => {}
+            Action::Play(id) => {
+                if event.state == ElementState::Pressed {
+                    self.down(id);
+                } else {
+                    self.up(id);
+                }
+                self.redraw();
+            }
+        }
     }
-    queue!(
-        stdout,
-        crossterm::terminal::Clear(crossterm::terminal::ClearType::FromCursorDown)
-    )
-    .map_err(|e| e.to_string())?;
-    stdout.flush().map_err(|e| e.to_string())
-}
 
-struct TermGuard;
+    fn point(&mut self, x: i32, y: i32) -> bool {
+        let Some(window) = &self.window else {
+            return false;
+        };
+        let size = window.inner_size();
+        let spots = layout(size.width as i32, size.height as i32, self.age);
+        let Some(id) = spot_at(&spots, x, y) else {
+            return false;
+        };
+        if id == EXIT_ID {
+            return true;
+        }
+        if let Some(mode) = trust_lesson::mode_from_id(id) {
+            self.mode = mode;
+            self.last = mode.name().to_string();
+            self.pointer = Some(id);
+            self.sync_sound();
+            self.redraw();
+            return false;
+        }
+        self.pointer = Some(id);
+        self.last = trust_lesson::label_for(id).to_string();
+        self.sync_sound();
+        self.redraw();
+        false
+    }
 
-impl TermGuard {
-    fn enter() -> Result<Self, String> {
-        enable_raw_mode().map_err(|e| e.to_string())?;
-        execute!(io::stdout(), EnterAlternateScreen, Hide).map_err(|e| e.to_string())?;
-        Ok(Self)
+    fn paint(&mut self) {
+        let (Some(window), Some(surface)) = (self.window.as_ref(), self.surface.as_mut()) else {
+            return;
+        };
+        let size = window.inner_size();
+        let (Some(width), Some(height)) =
+            (NonZeroU32::new(size.width), NonZeroU32::new(size.height))
+        else {
+            return;
+        };
+        if surface.resize(width, height).is_err() {
+            return;
+        }
+        let mut buffer = match surface.buffer_mut() {
+            Ok(buffer) => buffer,
+            Err(_) => return,
+        };
+        let spots = layout(size.width as i32, size.height as i32, self.age);
+        let mut held = self.keyboard.clone();
+        if let Some(id) = self.pointer {
+            if !held.contains(&id) {
+                held.push(id);
+            }
+        }
+        paint(
+            &mut buffer,
+            size.width as i32,
+            size.height as i32,
+            &spots,
+            &held,
+            self.age,
+            &self.last,
+            self.mode,
+        );
+        let _ = buffer.present();
     }
 }
 
-impl Drop for TermGuard {
-    fn drop(&mut self) {
-        let _ = execute!(io::stdout(), LeaveAlternateScreen, Show);
-        let _ = disable_raw_mode();
+fn token_from_key(event: &KeyEvent) -> String {
+    if let PhysicalKey::Code(code) = event.physical_key {
+        let name = match code {
+            KeyCode::Escape => "escape",
+            KeyCode::F1 => "f1",
+            KeyCode::F2 => "f2",
+            KeyCode::F3 => "f3",
+            KeyCode::F4 => "f4",
+            KeyCode::F5 => "f5",
+            KeyCode::F6 => "f6",
+            KeyCode::F7 => "f7",
+            KeyCode::F8 => "f8",
+            KeyCode::F9 => "f9",
+            KeyCode::F10 => "f10",
+            KeyCode::F11 => "f11",
+            KeyCode::F12 => "f12",
+            KeyCode::Backquote => "`",
+            KeyCode::Digit1 | KeyCode::Numpad1 => "1",
+            KeyCode::Digit2 | KeyCode::Numpad2 => "2",
+            KeyCode::Digit3 | KeyCode::Numpad3 => "3",
+            KeyCode::Digit4 | KeyCode::Numpad4 => "4",
+            KeyCode::Digit5 | KeyCode::Numpad5 => "5",
+            KeyCode::Digit6 | KeyCode::Numpad6 => "6",
+            KeyCode::Digit7 | KeyCode::Numpad7 => "7",
+            KeyCode::Digit8 | KeyCode::Numpad8 => "8",
+            KeyCode::Digit9 | KeyCode::Numpad9 => "9",
+            KeyCode::Digit0 | KeyCode::Numpad0 => "0",
+            KeyCode::Minus | KeyCode::NumpadSubtract => "-",
+            KeyCode::Equal | KeyCode::NumpadEqual => "=",
+            KeyCode::Backspace => "back",
+            KeyCode::Tab => "tab",
+            KeyCode::BracketLeft => "[",
+            KeyCode::BracketRight => "]",
+            KeyCode::Backslash => "\\",
+            KeyCode::Semicolon => ";",
+            KeyCode::Quote => "'",
+            KeyCode::Enter | KeyCode::NumpadEnter => "enter",
+            KeyCode::CapsLock => "caps",
+            KeyCode::ShiftLeft | KeyCode::ShiftRight => "shift",
+            KeyCode::Comma => ",",
+            KeyCode::Period | KeyCode::NumpadDecimal => ".",
+            KeyCode::Slash | KeyCode::NumpadDivide => "/",
+            KeyCode::Space => "space",
+            KeyCode::ControlLeft | KeyCode::ControlRight => "ctrl",
+            KeyCode::AltLeft | KeyCode::AltRight => "alt",
+            KeyCode::SuperLeft | KeyCode::SuperRight => "super",
+            KeyCode::ArrowLeft => "left",
+            KeyCode::ArrowDown => "down",
+            KeyCode::ArrowUp => "up",
+            KeyCode::ArrowRight => "right",
+            KeyCode::KeyA => "a",
+            KeyCode::KeyB => "b",
+            KeyCode::KeyC => "c",
+            KeyCode::KeyD => "d",
+            KeyCode::KeyE => "e",
+            KeyCode::KeyF => "f",
+            KeyCode::KeyG => "g",
+            KeyCode::KeyH => "h",
+            KeyCode::KeyI => "i",
+            KeyCode::KeyJ => "j",
+            KeyCode::KeyK => "k",
+            KeyCode::KeyL => "l",
+            KeyCode::KeyM => "m",
+            KeyCode::KeyN => "n",
+            KeyCode::KeyO => "o",
+            KeyCode::KeyP => "p",
+            KeyCode::KeyQ => "q",
+            KeyCode::KeyR => "r",
+            KeyCode::KeyS => "s",
+            KeyCode::KeyT => "t",
+            KeyCode::KeyU => "u",
+            KeyCode::KeyV => "v",
+            KeyCode::KeyW => "w",
+            KeyCode::KeyX => "x",
+            KeyCode::KeyY => "y",
+            KeyCode::KeyZ => "z",
+            other => return format!("{other:?}"),
+        };
+        return name.to_string();
+    }
+    match &event.logical_key {
+        winit::keyboard::Key::Named(NamedKey::Escape) => "escape".to_string(),
+        winit::keyboard::Key::Character(text) => text.to_string(),
+        other => format!("{other:?}"),
     }
 }
 
