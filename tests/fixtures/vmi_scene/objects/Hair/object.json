@@ -1,0 +1,19 @@
+{
+  "name": "Hair",
+  "type": "static",
+  "zIndex": 8,
+  "view": "",
+  "animation": false,
+  "slots": [
+    {
+      "file": "000000.PNG",
+      "state": "000",
+      "frame": "000",
+      "label": "rest",
+      "layers": [
+        "Hair"
+      ],
+      "png": true
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+#                    ☦
+#   The Word became flesh. John 1:14.
+#   Come, Holy Spirit.
+
+[package]
+name = "trust-vmi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Read a VMI STUDIO export plus a trust.json sidecar."
+publish = false
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

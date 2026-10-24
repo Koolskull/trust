@@ -1,0 +1,11 @@
+#                    ☦
+#   Establish the work of our hands. Psalm 90:17.
+#   Lord Jesus Christ, Son of God, have mercy on us.
+#   Come, Holy Spirit.
+
+[alias]
+xtask = "run --package xtask --"
+
+# wasm32-unknown-unknown has no unwind runtime. Abort stays off the audio path.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "panic=abort"]

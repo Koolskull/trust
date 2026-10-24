@@ -1,0 +1,56 @@
+#                    ☦
+#   In the name of the Father, and of the Son, and of the Holy Spirit.
+#   Lord Jesus Christ, Son of God, have mercy on us.
+#   Come, Holy Spirit.
+
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux audio headers
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libasound2-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Test
+        run: cargo test --workspace
+
+      - name: Compile the benchmark
+        run: cargo bench -p krush --no-run
+
+      - name: Hear-pass
+        run: cargo xtask hear
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: krush-hear-${{ matrix.os }}
+          path: target/hear/*.wav
+
+      - name: WASM proof
+        if: runner.os == 'Linux'
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo build -p trust-kos --target wasm32-unknown-unknown --release
+
+      - name: CLAP bundle and validator
+        if: runner.os == 'Linux'
+        run: |
+          cargo xtask bundle
+          # Not published on crates.io. Pin the tag. MIT.
+          cargo install --locked --git https://github.com/free-audio/clap-validator --tag 0.4.1 clap-validator
+          # Linux clap-validator dlopens the path. The bundle directory is for hosts.
+          clap-validator validate --only-failed target/bundled/KRUSH.clap/Contents/x86_64-linux/KRUSH.so

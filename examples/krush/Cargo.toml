@@ -1,0 +1,30 @@
+#                    ☦
+#   Lord Jesus Christ, Son of God, have mercy on us.
+#   Come, Holy Spirit.
+
+[package]
+name = "krush"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Stereo bitcrusher. Bits step, rate is Hz, ceiling is a digital level."
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bench]]
+name = "process"
+harness = false
+
+[dependencies]
+trust-core = { workspace = true }
+trust-dsp = { workspace = true }
+trust-plugin = { workspace = true }
+trust-clap = { workspace = true }
+clack-plugin = { workspace = true }
+assert_no_alloc = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }

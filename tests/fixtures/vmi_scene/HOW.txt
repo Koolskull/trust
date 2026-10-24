@@ -1,0 +1,54 @@
+This folder is the scene gamer.
+
+The drawing stays the source. This folder is the delivery. One scene file goes in. One folder comes out. Everyone on the picture uses the same folders, so a large drawing can be split across people and still stack.
+
+An object is one thing in the work: a door, a beetle, a shop, a word. The layers that build that thing (line, color, shadow) share one position and become one picture. Another drawing of that same thing is another position: hover, pressed, or the next frame.
+
+An animation folder is a timeline. Each thing directly inside it is one frame, and that frame can be a whole folder of layers and subfolders. The timeline order is the frame order. It can differ from the layer stack. Each frame is one full-canvas picture at the size of the drawing. It is not cut down to a small sprite.
+
+The picture name is six hex digits, SSSXXX.
+
+SSS is the state. 000 rest, 001 hover, 002 pressed, 003 after. XXX is the frame. 000, then 001, then 002.
+
+door at rest is objects/door/000000.PNG. door when the pointer is over it is objects/door/001000.PNG. The second drawing of a wave is objects/ocean/000001.PNG.
+
+Every picture is the whole canvas. Empty pixels stay empty, so the door still sits on the shop when the pictures stack. The back layer is the back of the picture.
+
+Exterior and Interior are views. They are written on the object. They are not separate games.
+
+A hidden layer, a hidden folder, and a name that says sketch, guide, reference, template, or paper, or that starts with _, stays in the drawing. It is listed so the leave-out is on purpose.
+
+Layer 1, Folder 1, and a bare number will not make sense next month. Name the object for the thing.
+
+Read names when the layers are already named. Pick layers and make an object when they are not. Assign a frame when the name does not already say the position. Find frames pulls in the other drawings of that same thing.
+
+This scene
+
+Canvas 3840 x 3840. Source gamer.kra (kra).
+
+Background  static  z 0
+  000000.PNG  rest  Background
+Paint Layer 4  static  z 2
+  000000.PNG  rest  Paint Layer 4
+Paint Layer 1  static  z 5
+  000000.PNG  rest  Paint Layer 1
+skintone  static  z 6
+  000000.PNG  rest  skintone
+skintone 2  static  z 6
+  000000.PNG  rest  skintone, Eyes, Hair, Torso Color, Cards, ink
+skintone 3  static  z 6
+  000000.PNG  rest  skintone, Eyes, Hair, Torso Color, Cards, ink
+skintone 4  static  z 6
+  000000.PNG  rest  skintone, Eyes, Hair, Torso Color, Cards, ink
+skintone 5  static  z 6
+  000000.PNG  rest  skintone, Eyes, Hair, Torso Color, Cards, ink
+Eyes  static  z 7
+  000000.PNG  rest  Eyes
+Hair  static  z 8
+  000000.PNG  rest  Hair
+Torso Color  static  z 9
+  000000.PNG  rest  Torso Color
+Cards  static  z 10
+  000000.PNG  rest  Cards
+ink  static  z 11
+  000000.PNG  rest  ink

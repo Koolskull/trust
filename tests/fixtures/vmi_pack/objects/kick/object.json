@@ -1,0 +1,29 @@
+{
+  "name": "kick",
+  "type": "static",
+  "zIndex": 0,
+  "view": "",
+  "animation": false,
+  "slots": [
+    {
+      "file": "000000.wav",
+      "state": "000",
+      "frame": "000",
+      "label": "bank0-slice0",
+      "layers": [
+        "kick"
+      ],
+      "png": false
+    },
+    {
+      "file": "000001.WAV",
+      "state": "000",
+      "frame": "001",
+      "label": "bank0-slice1",
+      "layers": [
+        "kick"
+      ],
+      "png": false
+    }
+  ]
+}

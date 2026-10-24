@@ -1,0 +1,15 @@
+#                    ☦
+#   Lord Jesus Christ, Son of God, have mercy on us.
+#   Come, Holy Spirit.
+
+[package]
+name = "trust-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Thin TRUST processor trait. MIDI maps live here, not in the graph."
+publish = false
+
+[dependencies]
+trust-core = { workspace = true }

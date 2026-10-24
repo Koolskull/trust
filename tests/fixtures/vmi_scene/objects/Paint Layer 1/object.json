@@ -1,0 +1,19 @@
+{
+  "name": "Paint Layer 1",
+  "type": "static",
+  "zIndex": 5,
+  "view": "",
+  "animation": false,
+  "slots": [
+    {
+      "file": "000000.PNG",
+      "state": "000",
+      "frame": "000",
+      "label": "rest",
+      "layers": [
+        "Paint Layer 1"
+      ],
+      "png": true
+    }
+  ]
+}

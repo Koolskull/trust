@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--
+                    ☦
+          In the name of the Father, and of the Son, and of the Holy Spirit.
+          Lord Jesus Christ, Son of God, have mercy on us.
+          Come, Holy Spirit.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TRUST KRUSH</title>
+  <style>
+    body { background: #000; color: #fff; font: 14px monospace; margin: 24px; }
+    button, label { font: inherit; color: #fff; }
+    button { background: #000; border: 1px solid #fff; padding: 8px 16px; }
+    label { display: block; margin: 8px 0; }
+    input { width: 280px; }
+  </style>
+</head>
+<body>
+  <p>IC XC NIKA</p>
+  <p>KRUSH in an AudioWorklet. The module is compiled on this thread. No SharedArrayBuffer.</p>
+  <button id="play" type="button">play</button>
+  <label>bits <input id="bits" type="range" min="1" max="16" value="8"></label>
+  <label>rate Hz <input id="rate" type="range" min="1000" max="48000" value="8000"></label>
+  <label>mix milli <input id="mix" type="range" min="0" max="1000" value="1000"></label>
+  <pre id="status">idle</pre>
+  <script>
+    const status = document.getElementById("status");
+    let node = null;
+    function send(param, value) {
+      if (node) node.port.postMessage({ param, value: value | 0 });
+    }
+    document.getElementById("bits").oninput = (e) => send(1, e.target.value);
+    document.getElementById("rate").oninput = (e) => send(2, e.target.value);
+    document.getElementById("mix").oninput = (e) => send(4, e.target.value);
+    document.getElementById("play").onclick = async () => {
+      status.textContent = "compiling";
+      const bytes = await (await fetch("trust_kos.wasm")).arrayBuffer();
+      const module = await WebAssembly.compile(bytes);
+      const ctx = new AudioContext();
+      await ctx.audioWorklet.addModule("processor.js");
+      node = new AudioWorkletNode(ctx, "trust-krush", { outputChannelCount: [2] });
+      node.port.postMessage({ module });
+      node.connect(ctx.destination);
+      send(1, document.getElementById("bits").value);
+      send(2, document.getElementById("rate").value);
+      send(4, document.getElementById("mix").value);
+      status.textContent = "playing " + ctx.sampleRate + " Hz";
+    };
+  </script>
+</body>
+</html>

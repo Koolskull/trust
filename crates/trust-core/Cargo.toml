@@ -1,0 +1,16 @@
+#                    ☦
+#          In the name of the Father, and of the Son, and of the Holy Spirit.
+#          Lord Jesus Christ, Son of God, have mercy on us.
+#          Come, Holy Spirit.
+
+[package]
+name = "trust-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "no_std audio params, buffers, smoothing, and events for TRUST"
+publish = false
+
+[dependencies]
+libm = { workspace = true }

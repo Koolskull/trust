@@ -1,0 +1,40 @@
+{
+  "vmi": 1,
+  "naming": "SSSXXX",
+  "scene": "vmi_pack",
+  "canvas": {
+    "w": 1,
+    "h": 1
+  },
+  "source": {
+    "file": "trust-pack",
+    "kind": "pack"
+  },
+  "playlist": "",
+  "objects": [
+    {
+      "id": "kick",
+      "folder": "objects/kick",
+      "type": "static",
+      "zIndex": 0,
+      "slots": {
+        "000000": {
+          "file": "000000.wav",
+          "label": "bank0-slice0",
+          "layers": [
+            "kick"
+          ],
+          "png": false
+        },
+        "000001": {
+          "file": "000001.WAV",
+          "label": "bank0-slice1",
+          "layers": [
+            "kick"
+          ],
+          "png": false
+        }
+      }
+    }
+  ]
+}

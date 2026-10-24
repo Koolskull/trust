@@ -1,0 +1,45 @@
+#                    ☦
+#          In the name of the Father, and of the Son, and of the Holy Spirit.
+#          Lord Jesus Christ, Son of God, have mercy on us.
+#          Come, Holy Spirit.
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/trust-core",
+    "crates/trust-dsp",
+    "crates/trust-graph",
+    "crates/trust-plugin",
+    "crates/trust-clap",
+    "crates/trust-host",
+    "crates/trust-vmi",
+    "crates/trust-kos",
+    "examples/krush",
+    "xtask",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["KOOLSKULL"]
+repository = "https://github.com/Koolskull/trust"
+rust-version = "1.85"
+
+[workspace.dependencies]
+trust-core = { path = "crates/trust-core" }
+trust-dsp = { path = "crates/trust-dsp" }
+trust-graph = { path = "crates/trust-graph" }
+trust-plugin = { path = "crates/trust-plugin" }
+trust-clap = { path = "crates/trust-clap" }
+trust-vmi = { path = "crates/trust-vmi" }
+libm = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+clack-plugin = "0.2"
+clack-extensions = { version = "0.2", default-features = false, features = ["clack-plugin", "audio-ports"] }
+assert_no_alloc = "1"
+cpal = "0.15"
+midir = "0.10"
+criterion = "0.5"

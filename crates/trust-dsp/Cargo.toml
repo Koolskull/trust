@@ -1,0 +1,17 @@
+#                    ☦
+#   "Sing to the Lord a new song." — Psalm 96:1
+#   Lord Jesus Christ, Son of God, have mercy on us.
+#   Come, Holy Spirit.
+
+[package]
+name = "trust-dsp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "KRUSH bitcrush, sample-rate reduction, gain, mix, and ceiling"
+publish = false
+
+[dependencies]
+trust-core = { workspace = true }
+libm = { workspace = true }

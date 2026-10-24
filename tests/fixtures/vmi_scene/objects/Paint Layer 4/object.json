@@ -1,0 +1,19 @@
+{
+  "name": "Paint Layer 4",
+  "type": "static",
+  "zIndex": 2,
+  "view": "",
+  "animation": false,
+  "slots": [
+    {
+      "file": "000000.PNG",
+      "state": "000",
+      "frame": "000",
+      "label": "rest",
+      "layers": [
+        "Paint Layer 4"
+      ],
+      "png": true
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+#                    ☦
+#   Establish the work of our hands. Psalm 90:17.
+#   Come, Holy Spirit.
+
+[package]
+name = "xtask"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Bundle KRUSH as a CLAP and render the hear-pass WAV."
+publish = false
+
+[dependencies]
+krush = { path = "../examples/krush" }

@@ -1,0 +1,243 @@
+{
+  "vmi": 1,
+  "naming": "SSSXXX",
+  "scene": "gamer",
+  "canvas": {
+    "w": 3840,
+    "h": 3840
+  },
+  "source": {
+    "file": "gamer.kra",
+    "kind": "kra"
+  },
+  "objects": [
+    {
+      "id": "Background",
+      "folder": "objects/Background",
+      "type": "static",
+      "zIndex": 0,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "Background"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "Paint Layer 4",
+      "folder": "objects/Paint Layer 4",
+      "type": "static",
+      "zIndex": 2,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "Paint Layer 4"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "Paint Layer 1",
+      "folder": "objects/Paint Layer 1",
+      "type": "static",
+      "zIndex": 5,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "Paint Layer 1"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "skintone",
+      "folder": "objects/skintone",
+      "type": "static",
+      "zIndex": 6,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "skintone"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "skintone 2",
+      "folder": "objects/skintone 2",
+      "type": "static",
+      "zIndex": 6,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "skintone",
+            "Eyes",
+            "Hair",
+            "Torso Color",
+            "Cards",
+            "ink"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "skintone 3",
+      "folder": "objects/skintone 3",
+      "type": "static",
+      "zIndex": 6,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "skintone",
+            "Eyes",
+            "Hair",
+            "Torso Color",
+            "Cards",
+            "ink"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "skintone 4",
+      "folder": "objects/skintone 4",
+      "type": "static",
+      "zIndex": 6,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "skintone",
+            "Eyes",
+            "Hair",
+            "Torso Color",
+            "Cards",
+            "ink"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "skintone 5",
+      "folder": "objects/skintone 5",
+      "type": "static",
+      "zIndex": 6,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "skintone",
+            "Eyes",
+            "Hair",
+            "Torso Color",
+            "Cards",
+            "ink"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "Eyes",
+      "folder": "objects/Eyes",
+      "type": "static",
+      "zIndex": 7,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "Eyes"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "Hair",
+      "folder": "objects/Hair",
+      "type": "static",
+      "zIndex": 8,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "Hair"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "Torso Color",
+      "folder": "objects/Torso Color",
+      "type": "static",
+      "zIndex": 9,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "Torso Color"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "Cards",
+      "folder": "objects/Cards",
+      "type": "static",
+      "zIndex": 10,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "Cards"
+          ],
+          "png": true
+        }
+      }
+    },
+    {
+      "id": "ink",
+      "folder": "objects/ink",
+      "type": "static",
+      "zIndex": 11,
+      "slots": {
+        "000000": {
+          "file": "000000.PNG",
+          "label": "rest",
+          "layers": [
+            "ink"
+          ],
+          "png": true
+        }
+      }
+    }
+  ]
+}

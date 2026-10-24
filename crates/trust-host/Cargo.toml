@@ -1,0 +1,24 @@
+#                    ☦
+#   My sheep hear my voice. John 10:27.
+#   Come, Holy Spirit.
+
+[package]
+name = "trust-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Standalone KRUSH host. cpal output, midir input."
+publish = false
+
+[[bin]]
+name = "trust-host"
+path = "src/main.rs"
+
+[dependencies]
+trust-core = { workspace = true }
+trust-dsp = { workspace = true }
+trust-plugin = { workspace = true }
+cpal = { workspace = true }
+midir = { workspace = true }
+assert_no_alloc = { workspace = true }

@@ -1,0 +1,19 @@
+#                    ☦
+#   IC XC NIKA
+#   Come, Holy Spirit.
+
+[package]
+name = "trust-clap"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "CLAP wrapper over the TRUST processor trait, via clack."
+publish = false
+
+[dependencies]
+trust-core = { workspace = true }
+trust-plugin = { workspace = true }
+clack-plugin = { workspace = true }
+clack-extensions = { workspace = true }
+assert_no_alloc = { workspace = true }

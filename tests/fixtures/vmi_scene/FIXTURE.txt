@@ -1,0 +1,4 @@
+This folder is a VMI STUDIO export copied from the gamer scene
+(Documents/work/CSP/BG/gamer): HOW.txt, layers.tsx, scene.json,
+and objects/. trust.json is TRUST metadata added beside that export.
+kind is ui, so SSS is a visual state (000 rest, 001 hover, 002 pressed, 003 after).

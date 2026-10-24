@@ -1,0 +1,19 @@
+{
+  "name": "Eyes",
+  "type": "static",
+  "zIndex": 7,
+  "view": "",
+  "animation": false,
+  "slots": [
+    {
+      "file": "000000.PNG",
+      "state": "000",
+      "frame": "000",
+      "label": "rest",
+      "layers": [
+        "Eyes"
+      ],
+      "png": true
+    }
+  ]
+}

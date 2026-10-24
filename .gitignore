@@ -1,0 +1,7 @@
+#                    ☦
+#   Lord Jesus Christ, Son of God, have mercy on us.
+#   Come, Holy Spirit.
+
+/target
+**/*.rs.bk
+.DS_Store
