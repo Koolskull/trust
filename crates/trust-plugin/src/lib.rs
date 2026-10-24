@@ -14,7 +14,9 @@
 //! is what that call runs. MIDI bindings are a mapping layer. They are not
 //! graph data.
 
-use trust_core::{Event, PARAM_BITS, PARAM_CEILING_DB_MILLI, PARAM_GAIN_MILLI, PARAM_MIX_MILLI, PARAM_RATE_HZ};
+use trust_core::{
+    Event, PARAM_BITS, PARAM_CEILING_DB_MILLI, PARAM_GAIN_MILLI, PARAM_MIX_MILLI, PARAM_RATE_HZ,
+};
 
 /// Implemented by a DSP voice or effect. `process` must not allocate.
 pub trait TrustProcessor: Send + Default + 'static {

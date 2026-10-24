@@ -152,7 +152,10 @@ pub fn load_scene(dir: &Path) -> Result<LoadedScene, VmiError> {
     let mut objects = Vec::new();
     for obj in &scene.objects {
         if obj.folder.contains("..") {
-            return Err(VmiError::Invalid(format!("folder {} escapes the scene", obj.folder)));
+            return Err(VmiError::Invalid(format!(
+                "folder {} escapes the scene",
+                obj.folder
+            )));
         }
         let folder = dir.join(&obj.folder);
         let doc: ObjectFile = read_json(&folder.join("object.json"))?;
@@ -185,7 +188,8 @@ pub fn load_scene(dir: &Path) -> Result<LoadedScene, VmiError> {
 }
 
 fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T, VmiError> {
-    let text = fs::read_to_string(path).map_err(|e| VmiError::Io(format!("{}: {e}", path.display())))?;
+    let text =
+        fs::read_to_string(path).map_err(|e| VmiError::Io(format!("{}: {e}", path.display())))?;
     let value: Value = serde_json::from_str(&text)
         .map_err(|e| VmiError::Json(path.display().to_string(), e.to_string()))?;
     reject_floats(&value).map_err(|e| VmiError::Json(path.display().to_string(), e))?;
@@ -213,7 +217,8 @@ fn reject_floats(value: &Value) -> Result<(), String> {
 }
 
 fn scan_media(folder: &Path, kind: Kind) -> Result<Vec<MediaFile>, VmiError> {
-    let rd = fs::read_dir(folder).map_err(|e| VmiError::Io(format!("{}: {e}", folder.display())))?;
+    let rd =
+        fs::read_dir(folder).map_err(|e| VmiError::Io(format!("{}: {e}", folder.display())))?;
     let mut files = Vec::new();
     for entry in rd {
         let entry = entry.map_err(|e| VmiError::Io(e.to_string()))?;
@@ -358,7 +363,11 @@ fn resolve_ci(folder: &Path, name: &str) -> Option<PathBuf> {
     let want = name.to_ascii_lowercase();
     let rd = fs::read_dir(folder).ok()?;
     for entry in rd.flatten() {
-        if entry.file_name().to_string_lossy().eq_ignore_ascii_case(&want) {
+        if entry
+            .file_name()
+            .to_string_lossy()
+            .eq_ignore_ascii_case(&want)
+        {
             return Some(entry.path());
         }
     }
@@ -384,7 +393,10 @@ mod tests {
         assert_eq!(scene.objects.len(), 13);
         let background = scene.objects.iter().find(|o| o.id == "Background").unwrap();
         assert_eq!(background.name, "Background");
-        assert!(background.files.iter().any(|f| f.ext == "png" && f.sss == UI_REST));
+        assert!(background
+            .files
+            .iter()
+            .any(|f| f.ext == "png" && f.sss == UI_REST));
         assert!(background.files.iter().all(|f| f.path.exists()));
         assert!(scene.objects.iter().all(|o| !o.name.is_empty()));
     }
@@ -407,7 +419,10 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("trust-vmi-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         write_min(&dir, "ui", "004000.wav");
-        assert!(load_scene(&dir).is_err(), "ui SSS 004 is not a visual state");
+        assert!(
+            load_scene(&dir).is_err(),
+            "ui SSS 004 is not a visual state"
+        );
 
         let _ = fs::remove_dir_all(&dir);
         write_min(&dir, "pack", "004000.wav");

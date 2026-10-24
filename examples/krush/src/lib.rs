@@ -17,7 +17,7 @@
 
 use std::path::{Path, PathBuf};
 
-use clack_plugin::prelude::{SinglePluginEntry, clack_export_entry};
+use clack_plugin::prelude::{clack_export_entry, SinglePluginEntry};
 use trust_clap::TrustClap;
 use trust_core::{
     Event, PARAM_BITS, PARAM_CEILING_DB_MILLI, PARAM_GAIN_MILLI, PARAM_MIX_MILLI, PARAM_RATE_HZ,

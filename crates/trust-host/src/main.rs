@@ -180,7 +180,11 @@ fn render(
         for i in 0..n {
             let base = (offset + i) * channels;
             in_l[i] = data[base];
-            in_r[i] = if channels > 1 { data[base + 1] } else { data[base] };
+            in_r[i] = if channels > 1 {
+                data[base + 1]
+            } else {
+                data[base]
+            };
         }
         let ev = if offset == 0 { &events[..count] } else { &[] };
         let in_l = &in_l[..n];

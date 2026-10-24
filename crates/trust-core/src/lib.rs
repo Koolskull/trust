@@ -190,7 +190,11 @@ pub fn flush_denormal(x: f32) -> f32 {
         return 0.0;
     }
     let exp = (x.to_bits() >> 23) & 0xff;
-    if exp == 0 { 0.0 } else { x }
+    if exp == 0 {
+        0.0
+    } else {
+        x
+    }
 }
 
 pub fn milli_to_unit(milli: i32) -> f32 {

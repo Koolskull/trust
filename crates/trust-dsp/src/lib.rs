@@ -16,8 +16,8 @@
 #![no_std]
 
 use trust_core::{
-    db_milli_to_lin, flush_denormal, milli_to_unit, Event, Smoother, PARAM_BITS, PARAM_CEILING_DB_MILLI,
-    PARAM_GAIN_MILLI, PARAM_MIX_MILLI, PARAM_RATE_HZ,
+    db_milli_to_lin, flush_denormal, milli_to_unit, Event, Smoother, PARAM_BITS,
+    PARAM_CEILING_DB_MILLI, PARAM_GAIN_MILLI, PARAM_MIX_MILLI, PARAM_RATE_HZ,
 };
 
 /// Quantize to `bits` in 1..=16. `bits` is the step count, not a glide.
@@ -122,7 +122,8 @@ impl Krush {
 
     pub fn set_sample_rate(&mut self, sample_rate: u32) {
         self.sample_rate = sample_rate.max(1);
-        self.reducer.set_hold(hold_frames(self.sample_rate, self.rate_hz));
+        self.reducer
+            .set_hold(hold_frames(self.sample_rate, self.rate_hz));
     }
 
     pub fn bits(&self) -> u8 {
@@ -140,7 +141,8 @@ impl Krush {
 
     pub fn set_rate_hz(&mut self, hz: i32) {
         self.rate_hz = hz.max(0) as u32;
-        self.reducer.set_hold(hold_frames(self.sample_rate, self.rate_hz));
+        self.reducer
+            .set_hold(hold_frames(self.sample_rate, self.rate_hz));
     }
 
     pub fn set_gain_milli(&mut self, milli: i32) {

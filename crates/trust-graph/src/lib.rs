@@ -158,7 +158,10 @@ pub fn validate(graph: &Graph) -> Result<(), GraphError> {
             )));
         }
         if pad.id as usize >= PAD_COUNT || seen[pad.id as usize] {
-            return Err(GraphError::Invalid(format!("pad id {} is not unique in 0..{PAD_COUNT}", pad.id)));
+            return Err(GraphError::Invalid(format!(
+                "pad id {} is not unique in 0..{PAD_COUNT}",
+                pad.id
+            )));
         }
         seen[pad.id as usize] = true;
     }
@@ -345,14 +348,18 @@ mod tests {
         let graph = load_json("{}").unwrap();
         assert_eq!(graph, Graph::default_bank());
         assert_eq!(graph.pads.len(), 16);
-        assert!(graph.pads.iter().all(|p| p.voices == 3 && p.send.amount_milli == 0));
+        assert!(graph
+            .pads
+            .iter()
+            .all(|p| p.voices == 3 && p.send.amount_milli == 0));
         assert_eq!(graph.caps.per_object, 3);
         assert_eq!(graph.caps.global, 32);
     }
 
     #[test]
     fn zero_version_migrates_and_discards_old_caps() {
-        let graph = load_json(r#"{"schema_version":0,"caps":{"per_object":1,"global":1}}"#).unwrap();
+        let graph =
+            load_json(r#"{"schema_version":0,"caps":{"per_object":1,"global":1}}"#).unwrap();
         assert_eq!(graph.caps.global, 32);
         assert_eq!(graph.schema_version, 1);
     }

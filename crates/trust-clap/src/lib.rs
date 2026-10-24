@@ -39,7 +39,10 @@ where
     type Shared<'a> = ();
     type MainThread<'a> = TrustMain;
 
-    fn declare_extensions(builder: &mut PluginExtensions<Self>, _shared: Option<&Self::Shared<'_>>) {
+    fn declare_extensions(
+        builder: &mut PluginExtensions<Self>,
+        _shared: Option<&Self::Shared<'_>>,
+    ) {
         builder.register::<PluginAudioPorts>();
     }
 }
@@ -160,7 +163,11 @@ impl<P> TrustAudio<P>
 where
     P: TrustProcessor,
 {
-    fn run_f32(&mut self, paired: clack_plugin::process::audio::PairedChannels<'_, f32>, frames: usize) {
+    fn run_f32(
+        &mut self,
+        paired: clack_plugin::process::audio::PairedChannels<'_, f32>,
+        frames: usize,
+    ) {
         let mut ends = [Ends::<f32> {
             input: std::ptr::null(),
             output: std::ptr::null_mut(),
@@ -174,23 +181,31 @@ where
             ends[count] = ends_f32(pair);
             count += 1;
         }
-        self.render(frames, |offset, _n, dst_l, dst_r| {
-            copy_in(ends[0].input, ends[0].frames, offset, dst_l);
-            if count > 1 {
-                copy_in(ends[1].input, ends[1].frames, offset, dst_r);
-            } else {
-                dst_r.copy_from_slice(dst_l);
-            }
-        }, |offset, n, src_l, src_r| {
-            let _ = n;
-            copy_out(src_l, ends[0].output, ends[0].frames, offset);
-            if count > 1 {
-                copy_out(src_r, ends[1].output, ends[1].frames, offset);
-            }
-        });
+        self.render(
+            frames,
+            |offset, _n, dst_l, dst_r| {
+                copy_in(ends[0].input, ends[0].frames, offset, dst_l);
+                if count > 1 {
+                    copy_in(ends[1].input, ends[1].frames, offset, dst_r);
+                } else {
+                    dst_r.copy_from_slice(dst_l);
+                }
+            },
+            |offset, n, src_l, src_r| {
+                let _ = n;
+                copy_out(src_l, ends[0].output, ends[0].frames, offset);
+                if count > 1 {
+                    copy_out(src_r, ends[1].output, ends[1].frames, offset);
+                }
+            },
+        );
     }
 
-    fn run_f64(&mut self, paired: clack_plugin::process::audio::PairedChannels<'_, f64>, frames: usize) {
+    fn run_f64(
+        &mut self,
+        paired: clack_plugin::process::audio::PairedChannels<'_, f64>,
+        frames: usize,
+    ) {
         let mut ends = [Ends::<f64> {
             input: std::ptr::null(),
             output: std::ptr::null_mut(),
@@ -204,19 +219,23 @@ where
             ends[count] = ends_f64(pair);
             count += 1;
         }
-        self.render(frames, |offset, _n, dst_l, dst_r| {
-            copy_in_f64(ends[0].input, ends[0].frames, offset, dst_l);
-            if count > 1 {
-                copy_in_f64(ends[1].input, ends[1].frames, offset, dst_r);
-            } else {
-                dst_r.copy_from_slice(dst_l);
-            }
-        }, |offset, _n, src_l, src_r| {
-            copy_out_f64(src_l, ends[0].output, ends[0].frames, offset);
-            if count > 1 {
-                copy_out_f64(src_r, ends[1].output, ends[1].frames, offset);
-            }
-        });
+        self.render(
+            frames,
+            |offset, _n, dst_l, dst_r| {
+                copy_in_f64(ends[0].input, ends[0].frames, offset, dst_l);
+                if count > 1 {
+                    copy_in_f64(ends[1].input, ends[1].frames, offset, dst_r);
+                } else {
+                    dst_r.copy_from_slice(dst_l);
+                }
+            },
+            |offset, _n, src_l, src_r| {
+                copy_out_f64(src_l, ends[0].output, ends[0].frames, offset);
+                if count > 1 {
+                    copy_out_f64(src_r, ends[1].output, ends[1].frames, offset);
+                }
+            },
+        );
     }
 
     fn render(
