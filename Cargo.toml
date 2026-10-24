@@ -16,6 +16,7 @@ members = [
     "crates/trust-kos",
     "examples/krush",
     "xtask",
+    "crates/trust-lesson",
 ]
 
 [workspace.package]

@@ -27,6 +27,10 @@ Voice allocation is a fixed list of 64. `note_on` steals the oldest voice of the
 
 A `midi` key anywhere in the graph is an error. Note and CC bindings live in `trust_plugin::MidiMap`. The standalone host pushes packed MIDI into an atomic ring from the midir callback and drains it on the audio callback.
 
+## Lesson
+
+`KOS TRUST LESSON <age>` is the `trust-lesson` binary. The words are case-insensitive. `3yo`, `3y`, and `3` are the same age. Ages 0 through 14 open one guided screen for that year. Age 15 and older (`FULL_CLASS_AGE`) opens a subject list: crush, hold, level, pads, MIDI, and the build. The screen is a string the tests render without a TTY. The live binary reads keys and, when the output device opens, fills it from `Voice::render` under `assert_no_alloc`. Gain and mix are snapped in the lesson so the step is audible. The ceiling line in the level class is a digital limit, not a hearing-safety claim.
+
 ## CLAP
 
 `trust-plugin::TrustProcessor` does not mention clack. `trust-clap` implements the clack `Plugin` and `PluginAudioProcessor` traits and the audio-ports extension (one stereo input, one stereo output). KRUSH exports `clack_export_entry!(SinglePluginEntry<TrustClap<KrushProcessor>>)`. The plugin id is `com.koolskull.trust.krush`.

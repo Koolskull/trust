@@ -28,6 +28,7 @@ The audio thread does not allocate, lock, or make a syscall. Debug builds instal
 | `trust-vmi` | Exported scene plus `trust.json`. |
 | `trust-kos` | `extern "C"` WASM proof and a plain HTML page. |
 | `xtask` | `cargo xtask bundle` and `cargo xtask hear`. |
+| `trust-lesson` | `KOS TRUST LESSON 3yo`. Age-matched tutorial. |
 
 ## KRUSH
 
@@ -64,6 +65,23 @@ cargo run -p trust-host
 ```
 
 `--list-midi` prints ports and exits. The live host opens the default f32 output. It does not open a device from unit tests.
+
+## Lesson
+
+Installing the lesson binary puts `KOS` on your PATH.
+
+```
+cargo install --path crates/trust-lesson
+KOS TRUST LESSON 3yo
+```
+
+Ages 0 through 14 start that year's lesson and stay there. A 3 year old gets the big button: SPACE plays, 1 is soft, 2 is loud. Age 15 and older opens the full class list. You pick crush, hold, level, pads, MIDI, or the build. From the repo without installing:
+
+```
+cargo run -p trust-lesson -- TRUST LESSON 3yo
+```
+
+`--dump` prints the screen and exits. `--keys space,2,q` plays a script. In a terminal the lesson stays open and, when a speaker is available, runs KRUSH on the audio thread. Unit tests do not open a device.
 
 ```
 rustup target add wasm32-unknown-unknown

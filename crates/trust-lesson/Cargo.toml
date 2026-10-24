@@ -1,0 +1,25 @@
+#                    ☦
+#   Let the children come. Mark 10:14.
+#   Lord Jesus Christ, Son of God, have mercy on us.
+#   Come, Holy Spirit.
+
+[package]
+name = "trust-lesson"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "KOS TRUST LESSON. An age-matched tutorial that runs in the terminal."
+publish = false
+
+[[bin]]
+name = "KOS"
+path = "src/main.rs"
+
+[dependencies]
+trust-core = { workspace = true }
+trust-dsp = { workspace = true }
+cpal = { workspace = true }
+assert_no_alloc = { workspace = true }
+crossterm = "0.28"
+libm = { workspace = true }
