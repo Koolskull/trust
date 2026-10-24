@@ -17,6 +17,7 @@ members = [
     "examples/krush",
     "xtask",
     "crates/trust-lesson",
+    "crates/trust-tracker",
 ]
 
 [workspace.package]

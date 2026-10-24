@@ -29,6 +29,7 @@ The audio thread does not allocate, lock, or make a syscall. Debug builds instal
 | `trust-kos` | `extern "C"` WASM proof and a plain HTML page. |
 | `xtask` | `cargo xtask bundle` and `cargo xtask hear`. |
 | `trust-lesson` | `KOS TRUST LESSON 3yo`. Fullscreen keyboard for that age. |
+| `trust-tracker` | Thrash 0.6.0. One phrase, eight channels, one oscillator through KRUSH. |
 
 ## KRUSH
 
@@ -86,6 +87,17 @@ cargo run -p trust-lesson -- TRUST LESSON 3yo
 ```
 
 `--dump` prints the text lesson and exits. `--keys space,2,q` runs that text script. The command above opens the fullscreen board and, when a speaker is available, runs KRUSH on the audio thread. Unit tests do not open a window or a device.
+
+## Thrash 0.6.0
+
+The JUCE tracker stays 0.5.3 and still owns `.dm2`. This crate is the next product version: one 16-row phrase, eight channels, and one sine summed into KRUSH. It does not open a song file.
+
+```
+cargo run -p trust-tracker
+trust-tracker --dump
+```
+
+Arrows move. Z writes C of the octave and steps down. Q writes the next octave. Space starts and stops. `[` and `]` change octave. Backspace clears. A pen, a mouse, or a touch selects a cell and does not write a pitch. ESC, or the ESC key on the screen, leaves. The window is fullscreen and black and white. `--dump` and `--help` print and exit. Unit tests do not open a window or a speaker. The crush is a fixed digital level: 8 bits, 8 kHz, gain 450 milli, ceiling −6 dB. That ceiling is not a hearing-safety claim.
 
 ```
 rustup target add wasm32-unknown-unknown

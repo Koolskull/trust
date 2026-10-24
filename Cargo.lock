@@ -2256,6 +2256,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "trust-tracker"
+version = "0.6.0"
+dependencies = [
+ "assert_no_alloc",
+ "cpal",
+ "libm",
+ "softbuffer",
+ "trust-core",
+ "trust-dsp",
+ "winit",
+]
+
+[[package]]
 name = "trust-vmi"
 version = "0.1.0"
 dependencies = [
