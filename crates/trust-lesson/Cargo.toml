@@ -9,7 +9,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "KOS TRUST LESSON. A fullscreen keyboard you can play with keys, a pen, or touch."
+description = "KOS TRUST LESSON. Big-letter pages, then a fullscreen keyboard for keys, a pen, or touch."
 publish = false
 
 [[bin]]

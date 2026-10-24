@@ -18,8 +18,10 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, SampleRate, StreamConfig};
 use softbuffer::{Context, Surface};
 use trust_lesson::{
-    action_for, layout, paint, parse_cli, render, render_block, sound_for, spot_at, Action, App,
-    BoardMode, Cli, Sound, Voice, EXIT_ID,
+    action_for, book_spots, digit_choice, knob_for, label_for, layout_for, lesson_cards,
+    mode_from_id, paint, paint_book, parse_cli, played_sound, press_choice, render, render_block,
+    selected_choices, silly_name, spot_at, Action, App, BoardMode, Cli, Knob, Sound, Voice,
+    BACK_ID, EXIT_ID, FULL_CLASS_AGE, LESSON_ID, READING_AGE,
 };
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, KeyEvent, MouseButton, TouchPhase, WindowEvent};
@@ -68,7 +70,7 @@ fn run(launch: trust_lesson::Launch) -> Result<(), String> {
     }
     if launch.dump {
         println!("{}", render(&app));
-        println!("Fullscreen board. Every key plays. ESC leaves. Pen and touch use the same keys.");
+        println!("Big letters come first. Tap NEXT. PLAY opens the keys. ESC leaves.");
         return Ok(());
     }
     live(app.age)
@@ -88,9 +90,13 @@ fn live(age: u8) -> Result<(), String> {
         keyboard: Vec::new(),
         pointer: None,
         cursor: (0, 0),
-        last: "play any key".to_string(),
+        last: "lesson".to_string(),
         controls,
         _audio: audio,
+        page: 0,
+        on_board: false,
+        picked: false,
+        knob: knob_for(age, BoardMode::Lesson),
     };
     event_loop
         .run_app(&mut stage)
@@ -109,13 +115,26 @@ struct Stage {
     last: String,
     controls: Arc<Controls>,
     _audio: Option<cpal::Stream>,
+    page: usize,
+    on_board: bool,
+    picked: bool,
+    knob: Knob,
 }
 
 impl Stage {
     fn sync_sound(&self) {
-        let id = self.pointer.or_else(|| self.keyboard.last().copied());
+        if !self.on_board {
+            let mut quiet = Sound::quiet();
+            quiet.playing = false;
+            self.controls.store(&quiet);
+            return;
+        }
+        let id = self
+            .pointer
+            .filter(|id| !self.choice_id(*id) && mode_from_id(*id).is_none() && *id != LESSON_ID)
+            .or_else(|| self.keyboard.last().copied());
         let sound = match id {
-            Some(id) => sound_for(self.age, id, self.mode),
+            Some(id) => played_sound(self.age, id, self.mode, &self.knob),
             None => {
                 let mut quiet = Sound::quiet();
                 quiet.playing = false;
@@ -125,14 +144,97 @@ impl Stage {
         self.controls.store(&sound);
     }
 
-    fn down(&mut self, id: u16) {
-        if id == EXIT_ID {
+    fn choice_id(&self, id: u16) -> bool {
+        press_choice(self.age, self.mode, self.knob, id).is_some()
+    }
+
+    fn cards(&self) -> &'static [trust_lesson::Card] {
+        let class = if self.age >= FULL_CLASS_AGE && self.picked {
+            Some(self.mode.name())
+        } else {
+            None
+        };
+        lesson_cards(self.age, class)
+    }
+
+    fn chooser(&self) -> bool {
+        let cards = self.cards();
+        self.age >= FULL_CLASS_AGE && !self.picked && self.page + 1 >= cards.len().max(1)
+    }
+
+    fn go_next(&mut self) {
+        if self.chooser() {
+            self.redraw();
             return;
+        }
+        let len = self.cards().len();
+        if self.page + 1 < len {
+            self.page += 1;
+        } else {
+            self.on_board = true;
+            self.keyboard.clear();
+            self.pointer = None;
+        }
+        self.sync_sound();
+        self.redraw();
+    }
+
+    fn go_back(&mut self) {
+        if self.on_board {
+            self.on_board = false;
+            self.keyboard.clear();
+            self.pointer = None;
+            self.sync_sound();
+            self.redraw();
+            return;
+        }
+        if self.page > 0 {
+            self.page -= 1;
+        } else if self.picked {
+            self.picked = false;
+            self.mode = BoardMode::Lesson;
+            self.page = self.cards().len().saturating_sub(1);
+        }
+        self.sync_sound();
+        self.redraw();
+    }
+
+    fn open_class(&mut self, mode: BoardMode) {
+        self.mode = mode;
+        self.picked = true;
+        self.page = 0;
+        self.on_board = false;
+        self.knob = knob_for(self.age, mode);
+        self.last = mode.name().to_string();
+        self.pointer = None;
+        self.keyboard.clear();
+        self.sync_sound();
+        self.redraw();
+    }
+
+    fn down(&mut self, id: u16) {
+        if id == EXIT_ID || id == LESSON_ID || id == BACK_ID {
+            return;
+        }
+        if let Some(knob) = press_choice(self.age, self.mode, self.knob, id) {
+            self.knob = knob;
+            self.last = label_for(id).to_string();
+            self.sync_sound();
+            return;
+        }
+        if let Some(choice) = digit_choice(self.age, self.mode, id) {
+            if let Some(knob) = press_choice(self.age, self.mode, self.knob, choice) {
+                self.knob = knob;
+            }
         }
         if !self.keyboard.contains(&id) {
             self.keyboard.push(id);
         }
-        self.last = trust_lesson::label_for(id).to_string();
+        self.last = if self.age < READING_AGE {
+            silly_name(id).to_string()
+        } else {
+            label_for(id).to_string()
+        };
         self.sync_sound();
     }
 
@@ -205,7 +307,10 @@ impl ApplicationHandler for Stage {
             }
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor = (position.x as i32, position.y as i32);
-                if self.pointer.is_some() && self.point(self.cursor.0, self.cursor.1) {
+                if self.on_board
+                    && self.pointer.is_some()
+                    && self.point(self.cursor.0, self.cursor.1)
+                {
                     event_loop.exit();
                 }
             }
@@ -214,8 +319,13 @@ impl ApplicationHandler for Stage {
                 let y = touch.location.y as i32;
                 self.cursor = (x, y);
                 match touch.phase {
-                    TouchPhase::Started | TouchPhase::Moved => {
+                    TouchPhase::Started => {
                         if self.point(x, y) {
+                            event_loop.exit();
+                        }
+                    }
+                    TouchPhase::Moved => {
+                        if self.on_board && self.point(x, y) {
                             event_loop.exit();
                         }
                     }
@@ -234,13 +344,29 @@ impl ApplicationHandler for Stage {
 
 impl Stage {
     fn on_key(&mut self, event_loop: &ActiveEventLoop, event: KeyEvent) {
+        if event.repeat {
+            return;
+        }
         let token = token_from_key(&event);
+        if !self.on_board {
+            if event.state != ElementState::Pressed {
+                return;
+            }
+            match action_for(&token) {
+                Action::Exit => event_loop.exit(),
+                Action::Play(id) if is_back_key(id) => self.go_back(),
+                Action::Play(_) | Action::Mode(_) => self.go_next(),
+            }
+            return;
+        }
         match action_for(&token) {
             Action::Exit if event.state == ElementState::Pressed => event_loop.exit(),
             Action::Exit => {}
             Action::Mode(mode) if event.state == ElementState::Pressed => {
                 self.mode = mode;
+                self.knob = knob_for(self.age, mode);
                 self.last = mode.name().to_string();
+                self.sync_sound();
                 self.redraw();
             }
             Action::Mode(_) => {}
@@ -260,33 +386,121 @@ impl Stage {
             return false;
         };
         let size = window.inner_size();
-        let spots = layout(size.width as i32, size.height as i32, self.age);
+        let width = size.width as i32;
+        let height = size.height as i32;
+        if !self.on_board {
+            let cards = self.cards();
+            let page = self.page.min(cards.len().saturating_sub(1));
+            let spots = book_spots(
+                width,
+                height,
+                page,
+                cards.len(),
+                self.page > 0 || self.picked,
+                self.chooser(),
+            );
+            let Some(id) = spot_at(&spots, x, y) else {
+                self.go_next();
+                return false;
+            };
+            if id == EXIT_ID {
+                return true;
+            }
+            if id == BACK_ID {
+                self.go_back();
+                return false;
+            }
+            if let Some(mode) = mode_from_id(id) {
+                self.open_class(mode);
+                return false;
+            }
+            self.go_next();
+            return false;
+        }
+        let spots = layout_for(width, height, self.age, self.mode);
         let Some(id) = spot_at(&spots, x, y) else {
             return false;
         };
         if id == EXIT_ID {
             return true;
         }
-        if let Some(mode) = trust_lesson::mode_from_id(id) {
+        if id == LESSON_ID {
+            self.go_back();
+            return false;
+        }
+        if let Some(mode) = mode_from_id(id) {
             self.mode = mode;
+            self.knob = knob_for(self.age, mode);
             self.last = mode.name().to_string();
             self.pointer = Some(id);
             self.sync_sound();
             self.redraw();
             return false;
         }
+        if let Some(knob) = press_choice(self.age, self.mode, self.knob, id) {
+            self.knob = knob;
+            self.last = label_for(id).to_string();
+            self.pointer = Some(id);
+            self.sync_sound();
+            self.redraw();
+            return false;
+        }
         self.pointer = Some(id);
-        self.last = trust_lesson::label_for(id).to_string();
+        self.last = if self.age < READING_AGE {
+            silly_name(id).to_string()
+        } else {
+            label_for(id).to_string()
+        };
         self.sync_sound();
         self.redraw();
         false
     }
 
     fn paint(&mut self) {
-        let (Some(window), Some(surface)) = (self.window.as_ref(), self.surface.as_mut()) else {
+        let Some(window) = self.window.clone() else {
             return;
         };
         let size = window.inner_size();
+        let width_px = size.width as i32;
+        let height_px = size.height as i32;
+        let book = if self.on_board {
+            None
+        } else {
+            let cards = self.cards();
+            if cards.is_empty() {
+                return;
+            }
+            let page = self.page.min(cards.len() - 1);
+            let spots = book_spots(
+                width_px,
+                height_px,
+                page,
+                cards.len(),
+                self.page > 0 || self.picked,
+                self.chooser(),
+            );
+            Some((cards, page, spots))
+        };
+        let board = if self.on_board {
+            let spots = layout_for(width_px, height_px, self.age, self.mode);
+            let mut held = self.keyboard.clone();
+            if let Some(id) = self.pointer {
+                if !held.contains(&id) {
+                    held.push(id);
+                }
+            }
+            for id in selected_choices(self.age, self.mode, &self.knob) {
+                if !held.contains(&id) {
+                    held.push(id);
+                }
+            }
+            Some((spots, held))
+        } else {
+            None
+        };
+        let Some(surface) = self.surface.as_mut() else {
+            return;
+        };
         let (Some(width), Some(height)) =
             (NonZeroU32::new(size.width), NonZeroU32::new(size.height))
         else {
@@ -299,25 +513,35 @@ impl Stage {
             Ok(buffer) => buffer,
             Err(_) => return,
         };
-        let spots = layout(size.width as i32, size.height as i32, self.age);
-        let mut held = self.keyboard.clone();
-        if let Some(id) = self.pointer {
-            if !held.contains(&id) {
-                held.push(id);
-            }
+        if let Some((cards, page, spots)) = book {
+            paint_book(
+                &mut buffer,
+                width_px,
+                height_px,
+                &cards[page],
+                &spots,
+                page,
+                cards.len(),
+                self.age,
+            );
+        } else if let Some((spots, held)) = board {
+            paint(
+                &mut buffer,
+                width_px,
+                height_px,
+                &spots,
+                &held,
+                self.age,
+                &self.last,
+                self.mode,
+            );
         }
-        paint(
-            &mut buffer,
-            size.width as i32,
-            size.height as i32,
-            &spots,
-            &held,
-            self.age,
-            &self.last,
-            self.mode,
-        );
         let _ = buffer.present();
     }
+}
+
+fn is_back_key(id: u16) -> bool {
+    matches!(label_for(id), "left" | "back")
 }
 
 fn token_from_key(event: &KeyEvent) -> String {

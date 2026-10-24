@@ -29,11 +29,13 @@ pub fn usage_text() -> &'static str {
     "\
 KOS TRUST LESSON 3yo
 
-A fullscreen board opens. Every key plays. Pen and touch hit the same keys.
+Big letters open first. Tap NEXT, or tap the page.
+PLAY opens the keys. Pen and touch hit the same places.
 ESC leaves. On a tablet, tap the ESC key on the screen.
 
-Ages 0 through 14 get that year's sound.
-Age 15 and older can switch crush, hold, level, pads, MIDI, and build.
+Ages 0 through 4 get a short silly start, then every key is different.
+From age 5, the pages teach. Older ages add controls.
+Age 15 and older pick crush, hold, level, pads, MIDI, or build.
 
   KOS TRUST LESSON 3yo
   KOS TRUST LESSON 15yo

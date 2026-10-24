@@ -75,7 +75,9 @@ cargo install --path crates/trust-lesson
 KOS TRUST LESSON 3yo
 ```
 
-The lesson opens a fullscreen black-and-white board. Every keyboard key plays a different sound. A pen or finger hits the same keys, including on a drawing-tablet monitor. ESC leaves. On a tablet, tap the ESC key drawn on the screen. Age 15 and older gets buttons for crush, hold, level, pads, MIDI, and build.
+The lesson opens fullscreen in black and white. Big letters come first. Tap NEXT, or tap the page. PLAY opens the keys. A pen or finger hits the same places, including on a drawing-tablet monitor. ESC leaves. On a tablet, tap the ESC key drawn on the screen.
+
+Ages 0 through 4 get a short silly start. Each key then keeps its own sound: different pitch, stair count, and hold, with soft and loud mixed in. From age 5 the pages are a click-through lesson in big type. From age 6 the board adds the control that lesson just taught. Age 15 and older picks crush, hold, level, pads, MIDI, or build, reads that class, then plays it.
 
 The lesson holds its own level under a cap: quieter for ages 0–5, still under full scale at 15. Turn the computer volume down first. The cap is a tutorial limit, not a hearing-safety measurement. From the repo without installing:
 
